@@ -9,15 +9,12 @@ import tkinter as tk
 from tkinter import filedialog, ttk
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 
-# --- Configuration (from your original code) ---
 MODEL_PATH = 'cataract_classifier.h5' 
 IMG_SIZE = (150, 150) 
 CLASS_NAMES = ["Cataract", "Normal Eye"]
 POSITIVE_CLASS_INDEX = 1 
 GRAD_CAM_TARGET_LAYER = 'conv2d_2'
 
-# --- Fixed Size for Display Boxes ---
-# This is the fixed size for the display area of BOTH images (width, height)
 DISPLAY_BOX_SIZE = (350, 350) 
 
 # --- Global Variables for Tkinter (will be initialized later) ---
@@ -131,7 +128,6 @@ def display_gradcam_in_gui(img_path, heatmap, ax, alpha=0.4):
     ax.figure.canvas.draw_idle()
 
 
-# load the image and preprocess (unchanged)
 
 def load_and_preprocess_image(img_path, target_size):
     """Loads an image, resizes it, crops it, and converts it to a normalized array."""
@@ -197,13 +193,11 @@ def predict_cataract_gui(image_file_path):
     
     # --- 5. Update GUI ---
     
-    # a. Update Original Image (Left Panel) - Scale to fit!
     original_img_pil = Image.open(image_file_path)
     
     box_w, box_h = DISPLAY_BOX_SIZE
     img_w, img_h = original_img_pil.size
     
-    # Calculate the ratio to fit the image entirely within the box (scale to fit)
     ratio = min(box_w / img_w, box_h / img_h)
     
     # Calculate new dimensions
@@ -227,7 +221,6 @@ def predict_cataract_gui(image_file_path):
     image_label.config(image=tk_img)
     image_label.image = tk_img # Keep a reference
     
-    # b. Update Heatmap (Right Panel)
     if np.allclose(heatmap, 0): 
         print("\n*** GRAD-CAM FAILED: Could not generate heatmap (all zeros). ***")
         heatmap_ax.clear()
@@ -237,7 +230,6 @@ def predict_cataract_gui(image_file_path):
     else:
         display_gradcam_in_gui(image_file_path, heatmap, heatmap_ax)
     
-    # c. Update Result Text
     final_result_text = (
         f"--- CLASSIFICATION RESULT ---\n\n"
         f"Classification: {classification}\n"
@@ -338,7 +330,6 @@ def setup_gui():
     # Matplotlib Figure: Set size to match the frame size
     fig, heatmap_ax = plt.subplots(figsize=(DISPLAY_BOX_SIZE[0]/100, DISPLAY_BOX_SIZE[1]/100), dpi=100) 
     
-    # --- KEY CHANGE: Adjust subplots to have no margins ---
     fig.subplots_adjust(left=0, right=1, top=1, bottom=0)
     
     heatmap_ax.axis('off')
