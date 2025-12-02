@@ -4,40 +4,37 @@ from tensorflow.keras import layers, models
 from tensorflow.keras.preprocessing.image import ImageDataGenerator
 
 # configuration and setup
-
-BASE_DIR = 'D:/projects/aiproject/aiproject/processed_images'
+base_dir = 'D:/projects/aiproject/aiproject/processed_images'
 
 # model hyperparameters
-IMG_SIZE = (150, 150)
-BATCH_SIZE = 32
-EPOCHS = 19
+img_size = (150, 150)
+batch_size = 32
+epochs = 19
 
 # check if the base directory exists
-if not os.path.isdir(os.path.join(BASE_DIR, 'train')):
-    print(f"ERROR: The directory '{BASE_DIR}' does not seem to contain 'train' and 'test' folders.")
-    print("Please update the 'BASE_DIR' variable to the correct path.")
+if not os.path.isdir(os.path.join(base_dir, 'train')):
+    print(f"ERROR: '{base_dir}' doesn't contain 'train' and 'test' folders")
 
 # data loading and preprocessing
-
 print("Loading data...")
 
-train_ds = tf.keras.utils.image_dataset_from_directory(
-    directory=os.path.join(BASE_DIR, 'train'),
+train_data = tf.keras.utils.image_dataset_from_directory(
+    directory=os.path.join(base_dir, 'train'),
     labels='inferred',
     label_mode='binary',
-    image_size=IMG_SIZE,
+    image_size=img_size,
     interpolation='nearest',
-    batch_size=BATCH_SIZE,
+    batch_size=batch_size,
     shuffle=True
 )
 
-test_ds = tf.keras.utils.image_dataset_from_directory(
-    directory=os.path.join(BASE_DIR, 'test'),
+test_data = tf.keras.utils.image_dataset_from_directory(
+    directory=os.path.join(base_dir, 'test'),
     labels='inferred',
     label_mode='binary',
-    image_size=IMG_SIZE,
+    image_size=img_size,
     interpolation='nearest',
-    batch_size=BATCH_SIZE,
+    batch_size=batch_size,
     shuffle=False
 )
 
@@ -45,7 +42,7 @@ test_ds = tf.keras.utils.image_dataset_from_directory(
 def process(image, label):
     # center crop to remove sclera
     crop_size = 112 
-    offset = (IMG_SIZE[0] - crop_size) // 2 
+    offset = (img_size[0] - crop_size) // 2 
     
     image = tf.image.crop_to_bounding_box(
         image, 
@@ -54,21 +51,18 @@ def process(image, label):
         crop_size,       # target_height
         crop_size        # target_width
     )
-    
-    image = tf.image.resize(image, IMG_SIZE)
-    
+    image = tf.image.resize(image, img_size)
     image = tf.cast(image, tf.float32) / 255.0
     return image, label
 
-train_ds = train_ds.map(process)
-test_ds = test_ds.map(process)
+train_data = train_data.map(process)
+test_data = test_data.map(process)
 
-print(f"Found {len(train_ds) * BATCH_SIZE} training examples.")
-print(f"Found {len(test_ds) * BATCH_SIZE} test examples.")
+print(f"Found {len(train_data) * batch_size} training examples")
+print(f"Found {len(test_data) * batch_size} test examples")
 
 
 # model def
-
 def build_cnn_model(input_shape):
     model = models.Sequential([
         layers.RandomFlip("horizontal"),
@@ -86,22 +80,18 @@ def build_cnn_model(input_shape):
         
         layers.Conv2D(128, (3, 3), activation='relu'),
         layers.MaxPooling2D((2, 2)),
-        
     
         layers.Flatten(),
         
-        
         layers.Dropout(0.5),
-
         
         layers.Dense(128, activation='relu'),
-        
         
         layers.Dense(1, activation='sigmoid')
     ])
     return model
 
-input_shape = IMG_SIZE + (3,)
+input_shape = img_size + (3,)
 model = build_cnn_model(input_shape)
 
 # compile the model
@@ -115,7 +105,6 @@ model.summary()
 
 
 # training
-
 print("\nStarting model training...")
 
 # early stopping to stop training if the validation loss doesnt improve
@@ -126,23 +115,21 @@ early_stopping = tf.keras.callbacks.EarlyStopping(
 )
 
 history = model.fit(
-    train_ds,
-    epochs=EPOCHS,
-    validation_data=test_ds,
+    train_data,
+    epochs=epochs,
+    validation_data=test_data,
     callbacks=[early_stopping] 
 )
 
 # evaluation
+print("\nevaluating model performance on test set...")
 
-print("\nEvaluating model performance on the test set...")
+loss, accuracy = model.evaluate(test_data)
 
-loss, accuracy = model.evaluate(test_ds)
-
-print(f"Test Loss: {loss:.4f}")
-print(f"Test Accuracy: {accuracy*100:.2f}%")
+print(f"test loss: {loss:.4f}")
+print(f"test accuracy: {accuracy*100:.2f}%")
 
 # save model
-
-MODEL_SAVE_PATH = 'cataract_classifier.h5'
-model.save(MODEL_SAVE_PATH)
-print(f"\nModel saved successfully to {MODEL_SAVE_PATH}")
+model_path = 'cataract_classifier.h5'
+model.save(model_path)
+print(f"\nmodel saved to {model_path}")
